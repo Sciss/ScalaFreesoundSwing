@@ -1,0 +1,5 @@
+h2. ScalaFreesound-Swing
+
+h3. statement
+
+ScalaFreesound-Swing is a Swing front-end for ScalaFreesound ("github.com/Sciss/ScalaFreesound":http://github.com/Sciss/ScalaFreesound). ScalaFreesound-Swing is (C)opyright 2010 by Hanns Holger Rutz. All rights reserved. It is released under the "GNU General Public License":http://github.com/Sciss/ScalaFreesoundSwing/blob/master/licenses/ScalaFreesoundSwing-License.txt and comes with absolutely no warranties. To contact the author, send an email to @contact at sciss.de@
