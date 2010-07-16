@@ -215,7 +215,7 @@ extends JFrame( "Freesound Login" ) with Model {
    }
 
    private def clearLoginProc {
-      val wasIn = logicProc.isDefined
+      val wasIn = loginProc.isDefined
       loginProc.foreach( _.removeListener( loginProcListener ))
       loginProc   = None
       ggLogin.setText( "Login" )

@@ -60,10 +60,28 @@
   <component name="FileColors" enabled="true" enabledForTabs="true" />
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="ScalaFreesoundSwing.scala" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="ScalaFreesoundSwing.scala" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="1" column="23" selection-start="26" selection-end="26" vertical-scroll-proportion="-0.55510205">
+            <state line="59" column="69" selection-start="2171" selection-end="2171" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SearchResultFrame.scala" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="64" column="62" selection-start="2517" selection-end="2517" vertical-scroll-proportion="0.22105263">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SearchQueryFrame.scala" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchQueryFrame.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="104" column="0" selection-start="3590" selection-end="3590" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -72,7 +90,7 @@
       <file leaf-file-name="LoginFrame.scala" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/LoginFrame.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="0" column="0" selection-start="0" selection-end="984" vertical-scroll-proportion="0.0">
+            <state line="154" column="0" selection-start="5775" selection-end="5885" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -92,6 +110,8 @@
         <option value="$PROJECT_DIR$/project/build/ScalaFreesoundSwing.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/LoginFrame.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala" />
+        <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchQueryFrame.scala" />
+        <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala" />
       </list>
     </option>
   </component>
@@ -397,7 +417,13 @@
       <option name="PASS_PARENT_ENVS" value="true" />
       <module name="ScalaFreesoundSwing" />
       <envs />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="51281" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
       <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Debug" />
       <ConfigurationWrapper RunnerId="Run" />
       <method />
     </configuration>
@@ -427,13 +453,13 @@
     <supportedVersion>125</supportedVersion>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="22" width="1380" height="878" extended-state="0" />
+    <frame x="10" y="22" width="1380" height="878" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39923468" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32908162" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -508,14 +534,28 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/LoginFrame.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="984" vertical-scroll-proportion="0.0">
+        <state line="154" column="0" selection-start="5775" selection-end="5885" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1" column="23" selection-start="26" selection-end="26" vertical-scroll-proportion="-0.55510205">
+        <state line="59" column="69" selection-start="2171" selection-end="2171" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchQueryFrame.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="104" column="0" selection-start="3590" selection-end="3590" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="64" column="62" selection-start="2517" selection-end="2517" vertical-scroll-proportion="0.22105263">
           <folding />
         </state>
       </provider>

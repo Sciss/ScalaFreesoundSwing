@@ -28,8 +28,8 @@
 
 package de.sciss.freesound.swing
 
-import java.awt.EventQueue
 import javax.swing.WindowConstants
+import java.awt.{Point, EventQueue}
 
 object ScalaFreesoundSwing extends Runnable {
    val name          = "ScalaFreesound-Swing"
@@ -43,6 +43,26 @@ object ScalaFreesoundSwing extends Runnable {
    def run {
       val f = new LoginFrame()
       f.setDefaultCloseOperation( WindowConstants.EXIT_ON_CLOSE )
+      f.setLocation( 40, 40 )
       f.setVisible( true )
+      f.addListener {
+         case LoginFrame.LoggedIn( login ) => {
+            val sqf = new SearchQueryFrame( f, login )
+            sqf.setLocationRelativeTo( null )
+            sqf.setLocation( sqf.getX(), 40 )
+            sqf.setVisible( true )
+            sqf.addListener {
+               case SearchQueryFrame.NewSearch( idx, search ) => {
+                  val title = "Freesound Search #" + idx + " (" + {
+                        val kw = search.options.keyword
+                        if( kw.size < 24 ) kw else kw.take( 23 ) + "…"
+                     } + ")"
+                  val srf = new SearchResultFrame( sqf, search, title )
+                  srf.setLocationRelativeTo( null )
+                  srf.setVisible( true )
+               }
+            }
+         }
+      }
    }
 }
