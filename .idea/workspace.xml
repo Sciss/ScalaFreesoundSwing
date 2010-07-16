@@ -72,7 +72,7 @@
       <file leaf-file-name="SearchResultFrame.scala" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="64" column="62" selection-start="2517" selection-end="2517" vertical-scroll-proportion="0.22105263">
+            <state line="133" column="23" selection-start="5920" selection-end="5920" vertical-scroll-proportion="0.4755102">
               <folding />
             </state>
           </provider>
@@ -407,7 +407,7 @@
     <configuration default="false" name="ScalaFreesound-Swing" type="Application" factoryName="Application">
       <extension name="snapshooter" />
       <option name="MAIN_CLASS_NAME" value="de.sciss.freesound.swing.ScalaFreesoundSwing" />
-      <option name="VM_PARAMETERS" value="" />
+      <option name="VM_PARAMETERS" value="-Dapple.awt.graphics.UseQuartz=true" />
       <option name="PROGRAM_PARAMETERS" value="" />
       <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
@@ -555,7 +555,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="64" column="62" selection-start="2517" selection-end="2517" vertical-scroll-proportion="0.22105263">
+        <state line="133" column="23" selection-start="5920" selection-end="5920" vertical-scroll-proportion="0.4755102">
           <folding />
         </state>
       </provider>

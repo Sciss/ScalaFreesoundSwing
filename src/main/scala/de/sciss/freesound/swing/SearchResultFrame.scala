@@ -36,38 +36,41 @@ import collection.breakOut
 import collection.immutable.{ IndexedSeq => IIdxSeq, Queue => IQueue, Set => ISet }
 import de.sciss.freesound._
 import Search._
-import java.awt.{BorderLayout, EventQueue}
 import actors.{TIMEOUT, DaemonActor, Actor}
-import table.{TableRowSorter, AbstractTableModel, TableModel}
-import java.util.{Date, Comparator}
+import table._
+import java.text.SimpleDateFormat
+import java.util.{Locale, Date, Comparator}
+import java.awt.{Component, Graphics, BorderLayout, EventQueue}
 
 object SearchResultFrame {
    var maxConcurrentInfoQueries  = 20
 
-   private case class Column( idx: Int, name: String, width: Int, extract: SampleInfo => Any, sorter: Option[ Comparator[ _ ]])
+   private case class Column( idx: Int, name: String, minWidth: Int, maxWidth: Int, extract: SampleInfo => Any,
+                              renderer: Option[ TableCellRenderer ], sorter: Option[ Comparator[ _ ]])
 
    private object ColumnEnum {
       private var allVar = Vector.empty[ Column ]
       lazy val COLUMNS = allVar.toArray 
 
-      private def column( name: String, width: Int, fun: SampleInfo => Any,
+      private def column( name: String, minWidth: Int, maxWidth: Int, extract: SampleInfo => Any,
+                          renderer: Option[ TableCellRenderer ] = None,
                           sorter: Option[ Comparator[ _ ]] = None ) : Column = {
-         val c = Column( allVar.size, name, width, fun, sorter )
+         val c = Column( allVar.size, name, minWidth, maxWidth, extract, renderer, sorter )
          allVar :+= c
          c
       }
 
-      val COL_ID     = column( "ID",   48, _.id, Some( LongComparator ))
-      val COL_NAME   = column( "Name", 96, _.fileName )
-      val COL_FORM   = column( "Form", 32, _.extension )
-      val COL_CHAN   = column( "Chan", 16, _.numChannels, Some( IntComparator ))
-      val COL_BITS   = column( "Bits", 24, _.bitDepth, Some( IntComparator ))
-      val COL_SR     = column( "kHz",  32, _.sampleRate / 1000, Some( DoubleComparator ))
-      val COL_DUR    = column( "Duration", 48, _.duration, Some( DoubleComparator ))
-      val COL_DESCR  = column( "Description", 96, _.descriptions.headOption.map( _.text ).getOrElse( "" ))
-      val COL_USER   = column( "User", 32, _.user.name )
-      val COL_DATE   = column( "Date", 48, _.date )
-      val COL_RATING = column( "Rating", 16, _.statistics.rating, Some( IntComparator ))
+      val COL_ID     = column( "ID",   56, 56, _.id, Some( RightAlignedRenderer ), Some( LongComparator ))
+      val COL_NAME   = column( "Name", 96, 192, _.fileName )
+      val COL_FORM   = column( "Form", 36, 36, _.extension )
+      val COL_CHAN   = column( "Ch", 24, 24, _.numChannels, Some( RightAlignedRenderer ), Some( IntComparator ))
+      val COL_BITS   = column( "Bit", 24, 24, _.bitDepth, Some( RightAlignedRenderer ), Some( IntComparator ))
+      val COL_SR     = column( "kHz",  48, 48, _.sampleRate / 1000, Some( RightAlignedRenderer ), Some( DoubleComparator ))
+      val COL_DUR    = column( "Duration", 46, 46, _.duration, Some( DurationRenderer ), Some( DoubleComparator ))
+      val COL_DESCR  = column( "Description", 96, 384, _.descriptions.headOption.map( _.text ).getOrElse( "" ))
+      val COL_USER   = column( "User", 56, 84, _.user.name )
+      val COL_DATE   = column( "Date", 78, 78, _.date, Some( DateRenderer ), Some( DateComparator ))
+      val COL_RATING = column( "\u2605", 29, 29, _.statistics.rating, Some( RatingRenderer ), Some( IntComparator ))
    }
    val NUM_COLUMNS   = ColumnEnum.COLUMNS.size
 
@@ -85,6 +88,56 @@ object SearchResultFrame {
    }
    private object DateComparator extends Comparator[ Date ] {
       def compare( a: Date, b: Date ) = a.compareTo( b )
+   }
+   private object RightAlignedRenderer extends DefaultTableCellRenderer {
+      setHorizontalAlignment( SwingConstants.TRAILING )
+   }
+   private object DateRenderer extends DefaultTableCellRenderer {
+      private val df = new SimpleDateFormat( "yy-MMM-dd", Locale.US )
+      override def setValue( value: AnyRef ) {
+         super.setValue( if( value == null ) null else df.format( value ))
+      }
+   }
+   private object DurationRenderer extends DefaultTableCellRenderer {
+      override def setValue( value: AnyRef ) {
+         super.setValue( if( value == null ) null else value match {
+            case d: java.lang.Double => {
+               val secsP   = (d.doubleValue() + 0.5).toInt
+               val mins    = secsP / 60
+               val secs    = secsP % 60
+               (mins + 100).toString.substring( 1 ) + ":" +
+               (secs + 100).toString.substring( 1 ) 
+            }
+            case _ => value
+         })
+      }
+   }
+   private object RatingRenderer extends DefaultTableCellRenderer with Icon {
+      setIcon( this )
+      private var rating   = 0
+//      private var selected = false
+      override def setValue( value: AnyRef ) {
+         rating = if( value == null ) 0 else value match {
+            case i: Integer => i.intValue()
+            case _ => 0
+         }
+      }
+//      override def getTableCellRendererComponent( table: JTable, value: AnyRef, isSelected: Boolean,
+//                                                  hasFocus: Boolean, rowIdx: Int, colIdx: Int ) : Component = {
+//         selected = isSelected
+//         super.getTableCellRendererComponent( table, value, isSelected, hasFocus, rowIdx, colIdx )
+//      }
+      def getIconHeight = 16
+      def getIconWidth  = 21
+      def paintIcon( c: Component, g: Graphics, x: Int, y: Int ) {
+         g.setColor( getForeground() )
+         var xi = x + 1
+         val xn = x + rating * 2
+         while( xi < xn ) {
+            g.drawLine( xi, y, xi, y + 15 )
+            xi += 2
+         }
+      }
    }
 }
 
@@ -166,9 +219,14 @@ with Model {
       ggTable.setModel( tableModel )
       val colModel      = ggTable.getColumnModel()
       COLUMNS foreach { case col =>
-         col.sorter foreach { case sort => rowSorter.setComparator( col.idx, sort )}
-         colModel.getColumn( col.idx ).setPreferredWidth( col.width )
+         col.sorter.foreach( rowSorter.setComparator( col.idx, _ ))
+         val tc = colModel.getColumn( col.idx )
+         tc.setMinWidth( col.minWidth )
+         tc.setMaxWidth( col.maxWidth )
+//         tc.setPreferredWidth( col.width )
+         col.renderer.foreach( tc.setCellRenderer( _ ))
       }
+      colModel.setColumnMargin( 6 )
       ggTable.setRowSorter( rowSorter )
    }
 
@@ -191,21 +249,7 @@ with Model {
       def getValueAt( rowIdx: Int, colIdx: Int ) : AnyRef = {
          val smp = samples( rowIdx )
          if( colIdx == COL_ID.idx ) return smp.id.asInstanceOf[ AnyRef ]
-         smp.info.map( COLUMNS( colIdx ).extract( _ ).asInstanceOf[ AnyRef ])
-//         map { info =>
-//            colIdx match {
-//               case COL_NAME    => info.fileName
-//               case COL_FORM    => info.extension
-//               case COL_CHAN    => info.numChannels.asInstanceOf[ AnyRef ]
-//               case COL_BITS    => info.bitDepth.asInstanceOf[ AnyRef ]
-//               case COL_SR      => (info.sampleRate / 1000).asInstanceOf[ AnyRef ]
-//               case COL_DUR     => info.duration.asInstanceOf[ AnyRef ]
-//               case COL_DESCR   => info.descriptions.headOption.map( _.text ).getOrElse( "" )
-//               case COL_USER    => info.user.name
-//               case COL_DATE    => info.date
-//               case COL_RATING  => info.statistics.rating.asInstanceOf[ AnyRef ]
-//            }
-         .getOrElse({
+         smp.info.map( COLUMNS( colIdx ).extract( _ ).asInstanceOf[ AnyRef ]).getOrElse({
             addInfoQuery( smp )
             null
          })
