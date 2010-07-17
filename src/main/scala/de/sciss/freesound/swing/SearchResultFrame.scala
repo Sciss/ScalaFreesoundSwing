@@ -30,7 +30,6 @@ package de.sciss.freesound.swing
 
 import javax.swing._
 import java.awt.event._
-import javax.swing.event.TableModelEvent
 import de.sciss.freesound.swing.SearchQueryFrame.NewSearch
 import collection.breakOut
 import collection.immutable.{ IndexedSeq => IIdxSeq, Queue => IQueue, Set => ISet }
@@ -42,12 +41,15 @@ import java.text.SimpleDateFormat
 import java.util.{Locale, Date, Comparator}
 import java.awt._
 import java.io.File
+import javax.swing.event.{ListSelectionListener, ListSelectionEvent, TableModelEvent}
 
 /**
  *    @version 0.11, 17-Jul-10
  */
 object SearchResultFrame {
    var maxConcurrentInfoQueries  = 20
+
+   case class SelectionChanged( selection: Sample* )
 
    private case class Column( idx: Int, name: String, minWidth: Int, maxWidth: Int, extract: SampleRepr => Any,
                               renderer: Option[ TableCellRenderer ], sorter: Option[ Comparator[ _ ]])
@@ -135,9 +137,9 @@ object SearchResultFrame {
 
       override def setValue( value: AnyRef ) {
          val (w, c) = value match {
-            case DownloadDone( _ )     => (58, colrDone)
-            case _: DownloadFailed     => (58, colrFail)
-            case DownloadProgress( p ) => (p * 58/100, colrProg)
+            case DownloadDone( _ )     => (57, colrDone)
+            case _: DownloadFailed     => (57, colrFail)
+            case DownloadProgress( p ) => (p * 57/100, colrProg)
             case _                     => (0, Color.white)
          }
          barWidth = w
@@ -368,6 +370,13 @@ with Model {
                }
             }
          })
+      })
+      ggTable.getSelectionModel().addListSelectionListener( new ListSelectionListener {
+         def valueChanged( e: ListSelectionEvent ) {
+            val smps = ggTable.getSelectedRows().map( idx =>
+               samples( ggTable.convertRowIndexToModel( idx )).sample )
+            dispatch( SelectionChanged( smps: _* ))
+         }
       })
    }
 
