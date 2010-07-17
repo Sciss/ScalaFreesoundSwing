@@ -63,6 +63,10 @@ object ScalaFreesoundSwing {
    }
 
    def test( icachePath: Option[ String ], downloadPath: Option[ String ]) {
+      // prevent actor starvation!!!
+      // --> http://scala-programming-language.1934581.n4.nabble.com/Scala-Actors-Starvation-td2281657.html
+      System.setProperty( "actors.enableForkJoin", "false" )
+
       val icache = icachePath.map( SampleInfoCache.persistent( _ )) 
       val f = new LoginFrame()
       f.setDefaultCloseOperation( WindowConstants.EXIT_ON_CLOSE )

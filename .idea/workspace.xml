@@ -60,21 +60,21 @@
   <component name="FileColors" enabled="true" enabledForTabs="true" />
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="ScalaFreesoundSwing.scala" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="ScalaFreesoundSwing.scala" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="82" column="91" selection-start="3055" selection-end="3055" vertical-scroll-proportion="0.0">
+            <state line="67" column="62" selection-start="2319" selection-end="2373" vertical-scroll-proportion="0.5212766">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SearchResultFrame.scala" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="SearchResultFrame.scala" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="393" column="41" selection-start="15609" selection-end="15609" vertical-scroll-proportion="0.43736264">
+            <state line="139" column="49" selection-start="5292" selection-end="5292" vertical-scroll-proportion="0.0">
               <folding>
-                <marker date="1279399255000" expanded="true" signature="9258:9306" placeholder="..." />
+                <marker date="1279399532000" expanded="true" signature="9258:9306" placeholder="..." />
               </folding>
             </state>
           </provider>
@@ -121,8 +121,8 @@
         <option value="$PROJECT_DIR$/project/build/ScalaFreesoundSwing.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/LoginFrame.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchQueryFrame.scala" />
-        <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala" />
+        <option value="$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala" />
       </list>
     </option>
   </component>
@@ -551,19 +551,19 @@
         <state line="154" column="0" selection-start="5775" selection-end="5885" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala">
+    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="82" column="91" selection-start="3055" selection-end="3055" vertical-scroll-proportion="0.0">
-          <folding />
+        <state line="139" column="49" selection-start="5292" selection-end="5292" vertical-scroll-proportion="0.0">
+          <folding>
+            <marker date="1279399532000" expanded="true" signature="9258:9306" placeholder="..." />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/SearchResultFrame.scala">
+    <entry file="file://$PROJECT_DIR$/src/main/scala/de/sciss/freesound/swing/ScalaFreesoundSwing.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="393" column="41" selection-start="15609" selection-end="15609" vertical-scroll-proportion="0.43736264">
-          <folding>
-            <marker date="1279399255000" expanded="true" signature="9258:9306" placeholder="..." />
-          </folding>
+        <state line="67" column="62" selection-start="2319" selection-end="2373" vertical-scroll-proportion="0.5212766">
+          <folding />
         </state>
       </provider>
     </entry>

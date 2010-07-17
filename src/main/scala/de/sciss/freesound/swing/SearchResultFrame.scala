@@ -135,9 +135,9 @@ object SearchResultFrame {
 
       override def setValue( value: AnyRef ) {
          val (w, c) = value match {
-            case DownloadDone( _ )     => (59, colrDone)
-            case _: DownloadFailed     => (59, colrFail)
-            case DownloadProgress( p ) => (p * 59/100, colrProg)
+            case DownloadDone( _ )     => (58, colrDone)
+            case _: DownloadFailed     => (58, colrFail)
+            case DownloadProgress( p ) => (p * 58/100, colrProg)
             case _                     => (0, Color.white)
          }
          barWidth = w
