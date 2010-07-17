@@ -30,17 +30,40 @@ package de.sciss.freesound.swing
 
 import javax.swing.WindowConstants
 import java.awt.{Point, EventQueue}
+import java.io.File
+import de.sciss.freesound.{SampleInfoCache, Freesound}
 
-object ScalaFreesoundSwing extends Runnable {
+object ScalaFreesoundSwing {
    val name          = "ScalaFreesound-Swing"
    val version       = 0.10
    val copyright     = "(C)opyright 2010 Hanns Holger Rutz"
+   def versionString = (version + 0.001).toString.substring( 0, 4 )
 
    def main( args: Array[ String ]) {
-      EventQueue.invokeLater( this )
+      args.headOption match {
+         case Some( "--test" ) =>
+            val icachePath    = if( args.size > 1 ) Some( args( 1 )) else None
+            val downloadPath  = if( args.size > 2 ) Some( args( 2 )) else None
+            EventQueue.invokeLater( new Runnable {
+               def run = test( icachePath, downloadPath )
+            })
+         case _ => {
+            printInfo
+            System.exit( 1 )
+         }
+      }
    }
 
-   def run {
+   def printInfo {
+      println( "\n" + name + " v" + versionString + "\n" + copyright +
+""". All rights reserved.
+
+   --test [<cacheFolder>] [<downloadFolder>]  to run the test application
+""" )
+   }
+
+   def test( icachePath: Option[ String ], downloadPath: Option[ String ]) {
+      val icache = icachePath.map( SampleInfoCache.persistent( _ )) 
       val f = new LoginFrame()
       f.setDefaultCloseOperation( WindowConstants.EXIT_ON_CLOSE )
       f.setLocation( 40, 40 )
@@ -57,7 +80,7 @@ object ScalaFreesoundSwing extends Runnable {
                         val kw = search.options.keyword
                         if( kw.size < 24 ) kw else kw.take( 23 ) + "…"
                      } + ")"
-                  val srf = new SearchResultFrame( sqf, search, title )
+                  val srf = new SearchResultFrame( sqf, search, title, icache, downloadPath )
                   srf.setLocationRelativeTo( null )
                   srf.setVisible( true )
                }

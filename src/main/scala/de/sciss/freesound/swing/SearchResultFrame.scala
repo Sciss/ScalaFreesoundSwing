@@ -29,8 +29,8 @@
 package de.sciss.freesound.swing
 
 import javax.swing._
-import event.TableModelEvent
-import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.event._
+import javax.swing.event.TableModelEvent
 import de.sciss.freesound.swing.SearchQueryFrame.NewSearch
 import collection.breakOut
 import collection.immutable.{ IndexedSeq => IIdxSeq, Queue => IQueue, Set => ISet }
@@ -40,41 +40,20 @@ import actors.{TIMEOUT, DaemonActor, Actor}
 import table._
 import java.text.SimpleDateFormat
 import java.util.{Locale, Date, Comparator}
-import java.awt.{Component, Graphics, BorderLayout, EventQueue}
+import java.awt._
+import java.io.File
 
+/**
+ *    @version 0.11, 17-Jul-10
+ */
 object SearchResultFrame {
    var maxConcurrentInfoQueries  = 20
 
-   private case class Column( idx: Int, name: String, minWidth: Int, maxWidth: Int, extract: SampleInfo => Any,
+   private case class Column( idx: Int, name: String, minWidth: Int, maxWidth: Int, extract: SampleRepr => Any,
                               renderer: Option[ TableCellRenderer ], sorter: Option[ Comparator[ _ ]])
+   private val UnknownColumn = Column( -1, null, 0, 0, null, None, None )
 
-   private object ColumnEnum {
-      private var allVar = Vector.empty[ Column ]
-      lazy val COLUMNS = allVar.toArray 
-
-      private def column( name: String, minWidth: Int, maxWidth: Int, extract: SampleInfo => Any,
-                          renderer: Option[ TableCellRenderer ] = None,
-                          sorter: Option[ Comparator[ _ ]] = None ) : Column = {
-         val c = Column( allVar.size, name, minWidth, maxWidth, extract, renderer, sorter )
-         allVar :+= c
-         c
-      }
-
-      val COL_ID     = column( "ID",   56, 56, _.id, Some( RightAlignedRenderer ), Some( LongComparator ))
-      val COL_NAME   = column( "Name", 96, 192, _.fileName )
-      val COL_FORM   = column( "Form", 36, 36, _.extension )
-      val COL_CHAN   = column( "Ch", 24, 24, _.numChannels, Some( RightAlignedRenderer ), Some( IntComparator ))
-      val COL_BITS   = column( "Bit", 24, 24, _.bitDepth, Some( RightAlignedRenderer ), Some( IntComparator ))
-      val COL_SR     = column( "kHz",  48, 48, _.sampleRate / 1000, Some( RightAlignedRenderer ), Some( DoubleComparator ))
-      val COL_DUR    = column( "Duration", 46, 46, _.duration, Some( DurationRenderer ), Some( DoubleComparator ))
-      val COL_DESCR  = column( "Description", 96, 384, _.descriptions.headOption.map( _.text ).getOrElse( "" ))
-      val COL_USER   = column( "User", 56, 84, _.user.name )
-      val COL_DATE   = column( "Date", 78, 78, _.date, Some( DateRenderer ), Some( DateComparator ))
-      val COL_RATING = column( "\u2605", 29, 29, _.statistics.rating, Some( RatingRenderer ), Some( IntComparator ))
-   }
-   val NUM_COLUMNS   = ColumnEnum.COLUMNS.size
-
-   private case class IGetInfo( smp: Sample )
+   private case class IGetInfo( repr: SampleRepr )
    private case class IInfoDone( smp: Sample )
 
    private object IntComparator extends Comparator[ Int ] {
@@ -89,6 +68,37 @@ object SearchResultFrame {
    private object DateComparator extends Comparator[ Date ] {
       def compare( a: Date, b: Date ) = a.compareTo( b )
    }
+   private object DownloadComparator extends Comparator[ AnyRef ] {
+      import Sample._
+
+      def compare( a: AnyRef, b: AnyRef ) = {
+         rank( a ).compare( rank( b ))
+      }
+
+      private def rank( d: AnyRef ) = d match {
+         case DownloadBegin         => 1
+         case DownloadDone( _ )     => 102
+         case _: DownloadFailed     => 101
+         case DownloadProgress( p ) => p
+         case _                     => 0
+      }
+   }
+
+//   private object IDRenderer extends DefaultTableCellRenderer {
+//      setHorizontalAlignment( SwingConstants.TRAILING )
+//      private val colrCached = Color.green
+//      override def getTableCellRendererComponent( table: JTable, value: AnyRef, isSelected: Boolean,
+//                                                  hasFocus: Boolean, rowIdx: Int, colIdx: Int ) : Component = {
+//         val res = super.getTableCellRendererComponent( table, value, isSelected, hasFocus, rowIdx, colIdx )
+//         value match {
+//            case SampleRepr( _, cached ) if( cached ) => {
+//               if( isSelected ) res.setForeground( colrCached ) else res.setBackground( colrCached )
+//            }
+//            case _ =>
+//         }
+//         res
+//      }
+//   }
    private object RightAlignedRenderer extends DefaultTableCellRenderer {
       setHorizontalAlignment( SwingConstants.TRAILING )
    }
@@ -112,6 +122,34 @@ object SearchResultFrame {
          })
       }
    }
+   private object DownloadRenderer extends DefaultTableCellRenderer with Icon {
+      import Sample._
+
+      private var barWidth = 0
+      private val colrDone = new Color( 0x00, 0xC0, 0x00 )
+      private val colrProg = new Color( 0xFF, 0xC0, 0x00 )
+      private val colrFail = new Color( 0xFF, 0x00, 0x00 )
+      private var color    = Color.white
+
+      setIcon( this )
+
+      override def setValue( value: AnyRef ) {
+         val (w, c) = value match {
+            case DownloadDone( _ )     => (59, colrDone)
+            case _: DownloadFailed     => (59, colrFail)
+            case DownloadProgress( p ) => (p * 59/100, colrProg)
+            case _                     => (0, Color.white)
+         }
+         barWidth = w
+         color    = c
+      }
+      def getIconHeight = 16
+      def getIconWidth  = 60
+      def paintIcon( c: Component, g: Graphics, x: Int, y: Int ) {
+         g.setColor( color )
+         g.fillRect( x, y + 2, barWidth, 13 )
+      }
+   }
    private object RatingRenderer extends DefaultTableCellRenderer with Icon {
       setIcon( this )
       private var rating   = 0
@@ -122,42 +160,120 @@ object SearchResultFrame {
             case _ => 0
          }
       }
-//      override def getTableCellRendererComponent( table: JTable, value: AnyRef, isSelected: Boolean,
-//                                                  hasFocus: Boolean, rowIdx: Int, colIdx: Int ) : Component = {
-//         selected = isSelected
-//         super.getTableCellRendererComponent( table, value, isSelected, hasFocus, rowIdx, colIdx )
-//      }
       def getIconHeight = 16
       def getIconWidth  = 21
       def paintIcon( c: Component, g: Graphics, x: Int, y: Int ) {
          g.setColor( getForeground() )
          var xi = x + 1
+         val y0 = y + 2
+         val y1 = y + 14
          val xn = x + rating * 2
          while( xi < xn ) {
-            g.drawLine( xi, y, xi, y + 15 )
+            g.drawLine( xi, y0, xi, y1 )
             xi += 2
          }
       }
    }
+
+   private case class SampleRepr( sample: Sample, download: AnyRef )
 }
 
-class SearchResultFrame( queryFrame: SearchQueryFrame, search: Search, title: String, sizeVariant: String = "small" )
+class SearchResultFrame( queryFrame: SearchQueryFrame, search: Search, title: String,
+                         icache: Option[ SampleInfoCache ], downloadPath : Option[ String ],
+                         sizeVariant: String = "small" )
 extends JFrame( title )
 with Model {
    import SearchResultFrame._
+
+   private object ColumnEnum {
+      private var allVar = Vector.empty[ Column ]
+      lazy val COLUMNS = allVar.toArray
+
+      private def column( name: String, minWidth: Int, maxWidth: Int, extract: SampleInfo => Any,
+                          renderer: Option[ TableCellRenderer ] = None,
+                          sorter: Option[ Comparator[ _ ]] = None ) : Column = {
+         val c = Column( allVar.size, name, minWidth, maxWidth, r => extract( r.sample.info.get ), renderer, sorter )
+         allVar :+= c
+         c
+      }
+
+      private def columnR( name: String, minWidth: Int, maxWidth: Int, extract: SampleRepr => Any,
+                          renderer: Option[ TableCellRenderer ] = None,
+                          sorter: Option[ Comparator[ _ ]] = None ) : Column = {
+         val c = Column( allVar.size, name, minWidth, maxWidth, extract, renderer, sorter )
+         allVar :+= c
+         c
+      }
+
+      val COL_ID     = column( "ID",   56, 56, _.id, Some( RightAlignedRenderer ), Some( LongComparator ))
+      val COL_DOWN   = if( downloadPath.isDefined ) {
+         columnR( "Download", 64, 64, _.download, Some( DownloadRenderer ), Some( DownloadComparator ))
+      } else UnknownColumn
+      
+      val COL_NAME   = column( "Name", 96, 192, _.fileName )
+      val COL_FORM   = column( "Form", 36, 36, _.extension )
+      val COL_CHAN   = column( "Ch", 24, 24, _.numChannels, Some( RightAlignedRenderer ), Some( IntComparator ))
+      val COL_BITS   = column( "Bit", 24, 24, _.bitDepth, Some( RightAlignedRenderer ), Some( IntComparator ))
+      val COL_SR     = column( "kHz",  48, 48, _.sampleRate / 1000, Some( RightAlignedRenderer ), Some( DoubleComparator ))
+      val COL_DUR    = column( "Duration", 46, 46, _.duration, Some( DurationRenderer ), Some( DoubleComparator ))
+      val COL_DESCR  = column( "Description", 96, 384, _.descriptions.headOption.map( _.text ).getOrElse( "" ))
+      val COL_USER   = column( "User", 56, 84, _.user.name )
+      val COL_DATE   = column( "Date", 78, 78, _.date, Some( DateRenderer ), Some( DateComparator ))
+      val COL_RATING = column( "\u2605", 29, 29, _.statistics.rating, Some( RatingRenderer ), Some( IntComparator ))
+   }
+   val NUM_COLUMNS   = ColumnEnum.COLUMNS.size
    import ColumnEnum._
 
    private val frameListener: Model.Listener = { case LoginFrame.LoggedOut => loggedOut }
    private val ggTable                       = new JTable()
    private var mapToRowIndices               = Map.empty[ Sample, Int ]
-   private var tableModel : SampleTableModel = _
-   private var samples                       = Array.empty[ Sample ]
+//   private var tableModel : SampleTableModel = _
+   private var samples                       = Array.empty[ SampleRepr ]
    private var infoQuerySet                  = ISet.empty[ Sample ]
    private val searchListener: Model.Listener= {
       case SearchDone( samples ) => defer( searchDone( samples ))
    }
-   private def sampleListener( smp: Sample ) : Model.Listener = {
-      case r: Sample.InfoResult => defer( infoDone( smp ))
+   private def sampleInfoListener( repr: SampleRepr ) : Model.Listener = {
+      case f: Sample.InfoFailed => {
+         defer( infoDone( repr ))
+      }
+      case Sample.InfoDone( i ) => {
+         icache.foreach( c =>
+            if( !c.contains( repr.sample.id )) try {
+               c.add( i )
+            } catch { case e => e.printStackTrace() }
+         )
+         val repr2 = if( repr.download == None ) {
+            downloadPath map { path =>
+               val f = new File( path, i.fileName )
+//println( ": " + f + ".isFile = " + f.isFile )
+               if( !f.isFile ) repr else repr.copy( download = Sample.DownloadDone( f.getCanonicalPath() )) 
+            } getOrElse repr
+         } else repr
+         defer( infoDone( repr2 ))
+      }
+   }
+
+   private def sampleDownloadListener( repr: SampleRepr ) : Model.Listener = {
+      case p: Sample.DownloadProgress => {
+         val newRepr = repr.copy( download = p )
+         defer( downloadUpdate( newRepr ))
+      }
+      case Sample.DownloadBegin =>
+      case r: Sample.DownloadResult => {
+         val r2 = r match {
+            case Sample.DownloadDone( path ) => {
+               repr.sample.info.map( i => {
+                  val f1 = new File( path )
+                  val f2 = new File( f1.getParentFile(), i.fileName )
+                  if( f1.renameTo( f2 )) Sample.DownloadDone( f2.getCanonicalPath() ) else r
+               }).getOrElse( r )
+            }
+            case _ => r
+         }
+         val newRepr = repr.copy( download = r2 )
+         defer( downloadUpdate( newRepr ))
+      }
    }
 
    private lazy val infoQueryActor = {
@@ -172,13 +288,21 @@ with Model {
                   }
                } andThen {
                   reactWithin( if( infoQuerySet.isEmpty ) 0x3FFFFFFFFFFFFFFFL else 1L ) {
-                     case IGetInfo( smp ) => {
+                     case IGetInfo( repr ) => {
+                        val smp     = repr.sample
+//                        val repr2   = if( repr.download.isEmpty ) {
+//                           downloadPath map { path =>
+//
+//                           } getOrElse repr
+//                        } else repr
                         if( smp.infoResult.isEmpty ) {
                            queue += smp
-                           smp.addListener( sampleListener( smp ))
-                           smp.performInfo
+                           smp.addListener( sampleInfoListener( repr ))
+                           icache.flatMap( _.get( smp.id )).map( i => smp.info = Some( i ))
+                              .getOrElse( smp.performInfo( search.login ))
                         } else {
-                           defer( infoDone( smp ))
+//                           defer( infoDone( SampleRepr( smp, icache.map( _.contains( smp.id )).getOrElse( false ))))
+                           defer( infoDone( repr ))
                         }
                      }
                      case TIMEOUT => defer( queueNextInfo )
@@ -202,7 +326,7 @@ with Model {
       queryFrame.addListener( frameListener )
       search.addListener( searchListener )
 //      pack()
-      setSize( 400, 400 )
+      setSize( 640, 480 )
    }
 
    private def loggedOut {
@@ -212,11 +336,13 @@ with Model {
 
    private def searchDone( smps: IIdxSeq[ Sample ]) {
       mapToRowIndices   = smps.zipWithIndex[ Sample, Map[ Sample, Int ]]( breakOut )
-      samples           = smps.toArray
+      samples           = smps.map( SampleRepr( _, None ))( breakOut )
       infoQuerySet      = smps.toSet
-      tableModel        = new SampleTableModel( samples )
-      val rowSorter     = new TableRowSorter( tableModel )
-      ggTable.setModel( tableModel )
+//      tableModel        = new SampleTableModel( samples )
+//      val rowSorter     = new TableRowSorter( tableModel )
+      val rowSorter     = new TableRowSorter( SampleTableModel )
+//      ggTable.setModel( tableModel )
+      ggTable.setModel( SampleTableModel )
       val colModel      = ggTable.getColumnModel()
       COLUMNS foreach { case col =>
          col.sorter.foreach( rowSorter.setComparator( col.idx, _ ))
@@ -228,41 +354,85 @@ with Model {
       }
       colModel.setColumnMargin( 6 )
       ggTable.setRowSorter( rowSorter )
+      downloadPath.foreach( path => {
+         ggTable.addMouseListener( new MouseAdapter {
+            override def mouseClicked( e: MouseEvent ) {
+               if( e.getClickCount() != 2 ) return
+               val rowIdx = ggTable.convertRowIndexToModel( ggTable.getSelectedRow() )
+               val colIdx = ggTable.convertColumnIndexToModel( ggTable.getSelectedColumn() )
+               if( rowIdx >= 0 && colIdx == COL_DOWN.idx ) {
+                  val repr = samples( rowIdx )
+                  if( repr.sample.downloadResult.isEmpty ) {
+                     download( path, repr )
+                  }
+               }
+            }
+         })
+      })
    }
 
-   private def infoDone( smp: Sample ) {
+   private def download( folder: String, repr: SampleRepr ) {
+      val smp = repr.sample
+      smp.addListener( sampleDownloadListener( repr ))
+      val tmpFile = {
+         var i    = smp.id
+         val ext  = smp.info.get.extension
+         var f: File = null
+         do {
+            f = new File( folder, "__tmp" + i + "." + ext )
+            i += 1
+         } while( f.exists() )
+         f.createNewFile()
+         f.deleteOnExit()
+         f.getCanonicalPath()
+      }
+      smp.performDownload( tmpFile )( search.login )
+   }
+
+   private def infoDone( newRepr: SampleRepr ) {
 //      smp.removeListener( sampleListener )
-      infoQueryActor ! IInfoDone( smp )
-      val rowIdx = mapToRowIndices( smp )
-      tableModel.fireTableCellUpdated( rowIdx, TableModelEvent.ALL_COLUMNS )
+      infoQueryActor ! IInfoDone( newRepr.sample )
+      val rowIdx = mapToRowIndices( newRepr.sample )
+      samples( rowIdx ) = newRepr
+      SampleTableModel.fireTableCellUpdated( rowIdx, TableModelEvent.ALL_COLUMNS )
+   }
+
+   private def downloadUpdate( newRepr: SampleRepr ) {
+//println( "DOWN = " + newRepr.download )
+      val rowIdx = mapToRowIndices( newRepr.sample )
+      samples( rowIdx ) = newRepr
+      SampleTableModel.fireTableCellUpdated( rowIdx, COL_DOWN.idx )
    }
 
    private def defer( thunk: => Unit ) {
       EventQueue.invokeLater( new Runnable { def run = thunk })
    }
 
-   private class SampleTableModel( samples: Array[ Sample ]) extends AbstractTableModel {
+   private object SampleTableModel extends AbstractTableModel {
       def getRowCount = samples.size
       def getColumnCount = NUM_COLUMNS
       override def getColumnName( colIdx: Int ) = COLUMNS( colIdx ).name
 
       def getValueAt( rowIdx: Int, colIdx: Int ) : AnyRef = {
-         val smp = samples( rowIdx )
+         val repr = samples( rowIdx )
+         val smp  = repr.sample
          if( colIdx == COL_ID.idx ) return smp.id.asInstanceOf[ AnyRef ]
-         smp.info.map( COLUMNS( colIdx ).extract( _ ).asInstanceOf[ AnyRef ]).getOrElse({
-            addInfoQuery( smp )
+         if( smp.info.isDefined ) {
+            COLUMNS( colIdx ).extract( repr ).asInstanceOf[ AnyRef ]
+         } else {
+            addInfoQuery( repr )
             null
-         })
+         }
       }
    }
 
-   private def addInfoQuery( smp: Sample ) {
-      if( !infoQuerySet.contains( smp )) return
-      infoQuerySet   -= smp
-      infoQueryActor ! IGetInfo( smp )
+   private def addInfoQuery( repr: SampleRepr ) {
+      if( !infoQuerySet.contains( repr.sample )) return
+      infoQuerySet   -= repr.sample
+      infoQueryActor ! IGetInfo( repr )
    }
 
    private def queueNextInfo {
-      samples.find( smp => infoQuerySet.contains( smp )).foreach( addInfoQuery( _ ))
+      samples.find( repr => infoQuerySet.contains( repr.sample )).foreach( addInfoQuery( _ ))
    }
 }
