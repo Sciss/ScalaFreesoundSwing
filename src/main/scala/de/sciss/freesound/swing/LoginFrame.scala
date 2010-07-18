@@ -35,6 +35,9 @@ import java.awt.{EventQueue, BorderLayout, Dimension}
 import de.sciss.freesound.{Login, Model, Freesound, LoginProcess}
 import LoginProcess._
 
+/**
+ *    @version 0.11, 17-Jul-10
+ */
 object LoginFrame {
    case class LoggedIn( login: Login )
    case object LoggedOut
@@ -101,7 +104,7 @@ extends JFrame( "Freesound Login" ) with Model {
       ggUsername.addActionListener( actionButton )
       ggPassword.addActionListener( actionButton )
 
-      ggLogin.addActionListener( new ActionListener { def actionPerformed( e: ActionEvent ) { loginAction }})
+      ggLogin.addActionListener( new ActionListener { def actionPerformed( e: ActionEvent ) { performLogin }})
 
       lay.setHorizontalGroup( lay.createParallelGroup()
          .addGroup( lay.createSequentialGroup()
@@ -149,6 +152,10 @@ extends JFrame( "Freesound Login" ) with Model {
       pack()
    }
 
+   def username : String = ggUsername.getText()
+   def username_=( value: String ) { ggUsername.setText( value )}
+   def password_=( value: String ) { ggPassword.setText( value )}
+
    private def defer( thunk: => Unit ) {
       EventQueue.invokeLater( new Runnable { def run = thunk })
    }
@@ -193,7 +200,7 @@ extends JFrame( "Freesound Login" ) with Model {
       }
    }
 
-   private def loginAction {
+   def performLogin {
       loginProc match {
          case Some( proc ) => {
             if( proc.result.isDefined ) {

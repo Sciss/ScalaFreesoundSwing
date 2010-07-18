@@ -249,33 +249,47 @@ with Model {
             downloadPath map { path =>
                val f = new File( path, i.fileName )
 //println( ": " + f + ".isFile = " + f.isFile )
-               if( !f.isFile ) repr else repr.copy( download = Sample.DownloadDone( f.getCanonicalPath() )) 
+               if( !f.isFile ) repr else {
+                  val path = f.getCanonicalPath()
+                  repr.sample.download = Some( path )
+                  repr.copy( download = Sample.DownloadDone( path )) 
+               }
             } getOrElse repr
          } else repr
          defer( infoDone( repr2 ))
       }
    }
 
-   private def sampleDownloadListener( repr: SampleRepr ) : Model.Listener = {
-      case p: Sample.DownloadProgress => {
-         val newRepr = repr.copy( download = p )
-         defer( downloadUpdate( newRepr ))
-      }
-      case Sample.DownloadBegin =>
-      case r: Sample.DownloadResult => {
-         val r2 = r match {
-            case Sample.DownloadDone( path ) => {
-               repr.sample.info.map( i => {
-                  val f1 = new File( path )
-                  val f2 = new File( f1.getParentFile(), i.fileName )
-                  if( f1.renameTo( f2 )) Sample.DownloadDone( f2.getCanonicalPath() ) else r
-               }).getOrElse( r )
-            }
-            case _ => r
+   private def sampleDownloadListener( repr: SampleRepr ) = new PartialFunction[ AnyRef, Unit ] {
+      listener =>
+      val fun: Model.Listener = {
+         case p: Sample.DownloadProgress => {
+            val newRepr = repr.copy( download = p )
+            defer( downloadUpdate( newRepr ))
          }
-         val newRepr = repr.copy( download = r2 )
-         defer( downloadUpdate( newRepr ))
+         case Sample.DownloadBegin =>
+         case r: Sample.DownloadResult => {
+            val r2 = r match {
+               case Sample.DownloadDone( path ) => {
+                  repr.sample.info.map( i => {
+                     val f1 = new File( path )
+                     val f2 = new File( f1.getParentFile(), i.fileName )
+                     if( f1.renameTo( f2 )) {
+                        val path = f2.getCanonicalPath()
+                        repr.sample.removeListener( listener ) // avoid loop!
+                        repr.sample.download = Some( path )
+                        Sample.DownloadDone( path )
+                     } else r
+                  }).getOrElse( r )
+               }
+               case _ => r
+            }
+            val newRepr = repr.copy( download = r2 )
+            defer( downloadUpdate( newRepr ))
+         }
       }
+      def isDefinedAt( x: AnyRef ) = fun.isDefinedAt( x )
+      def apply( x: AnyRef ) = fun.apply( x )
    }
 
    private lazy val infoQueryActor = {
