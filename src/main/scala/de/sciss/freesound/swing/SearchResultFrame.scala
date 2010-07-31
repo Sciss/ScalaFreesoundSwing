@@ -180,7 +180,7 @@ object SearchResultFrame {
    private case class SampleRepr( sample: Sample, download: AnyRef )
 }
 
-class SearchResultFrame( queryFrame: SearchQueryFrame, search: Search, title: String,
+class SearchResultFrame( samples: IIdxSeq[ Sample ], login: Option[ Login ], title: String,
                          icache: Option[ SampleInfoCache ], downloadPath : Option[ String ],
                          sizeVariant: String = "small" )
 extends JFrame( title )
@@ -226,15 +226,13 @@ with Model {
    val NUM_COLUMNS   = ColumnEnum.COLUMNS.size
    import ColumnEnum._
 
-   private val frameListener: Model.Listener = { case LoginFrame.LoggedOut => loggedOut }
-   private val ggTable                       = new JTable()
-   private var mapToRowIndices               = Map.empty[ Sample, Int ]
+   private val ggTable                       = new JTable( SampleTableModel )
+   private val mapToRowIndices: Map[ Sample, Int ] = samples.zipWithIndex[ Sample, Map[ Sample, Int ]]( breakOut )
 //   private var tableModel : SampleTableModel = _
-   private var samples                       = Array.empty[ SampleRepr ]
-   private var infoQuerySet                  = ISet.empty[ Sample ]
-   private val searchListener: Model.Listener= {
-      case SearchDone( samples ) => defer( searchDone( samples ))
-   }
+   private val reprs: Array[ SampleRepr ] = samples.map( SampleRepr( _, None ))( breakOut )
+
+   private var infoQuerySet: ISet[ Sample ] = samples.toSet
+
    private def sampleInfoListener( repr: SampleRepr ) : Model.Listener = {
       case f: Sample.InfoFailed => {
          defer( infoDone( repr ))
@@ -315,7 +313,7 @@ with Model {
                            queue += smp
                            smp.addListener( sampleInfoListener( repr ))
                            icache.flatMap( _.get( smp.id )).map( i => smp.info = Some( i ))
-                              .getOrElse( smp.performInfo( search.login ))
+                              .getOrElse( login.foreach( smp.performInfo( _ )))
                         } else {
 //                           defer( infoDone( SampleRepr( smp, icache.map( _.contains( smp.id )).getOrElse( false ))))
                            defer( infoDone( repr ))
@@ -335,37 +333,13 @@ with Model {
    {
       val panel = getContentPane()
       ggTable.putClientProperty( "JComponent.sizeVariant", sizeVariant )
-//      ggTable.setAutoCreateRowSorter( true )
-      val ggScroll = new JScrollPane( ggTable,
-         ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS )
-      panel.add( ggScroll, BorderLayout.CENTER )
-      queryFrame.addListener( frameListener )
-      search.addListener( searchListener )
-//      pack()
-      setSize( 640, 480 )
-   }
-
-   private def loggedOut {
-//      dispose
-//      dispatch( LoggedOut )
-   }
-
-   private def searchDone( smps: IIdxSeq[ Sample ]) {
-      mapToRowIndices   = smps.zipWithIndex[ Sample, Map[ Sample, Int ]]( breakOut )
-      samples           = smps.map( SampleRepr( _, None ))( breakOut )
-      infoQuerySet      = smps.toSet
-//      tableModel        = new SampleTableModel( samples )
-//      val rowSorter     = new TableRowSorter( tableModel )
       val rowSorter     = new TableRowSorter( SampleTableModel )
-//      ggTable.setModel( tableModel )
-      ggTable.setModel( SampleTableModel )
       val colModel      = ggTable.getColumnModel()
       COLUMNS foreach { case col =>
          col.sorter.foreach( rowSorter.setComparator( col.idx, _ ))
          val tc = colModel.getColumn( col.idx )
          tc.setMinWidth( col.minWidth )
          tc.setMaxWidth( col.maxWidth )
-//         tc.setPreferredWidth( col.width )
          col.renderer.foreach( tc.setCellRenderer( _ ))
       }
       colModel.setColumnMargin( 6 )
@@ -377,7 +351,7 @@ with Model {
                val rowIdx = ggTable.convertRowIndexToModel( ggTable.getSelectedRow() )
                val colIdx = ggTable.convertColumnIndexToModel( ggTable.getSelectedColumn() )
                if( rowIdx >= 0 && colIdx == COL_DOWN.idx ) {
-                  val repr = samples( rowIdx )
+                  val repr = reprs( rowIdx )
                   if( repr.sample.downloadResult.isEmpty ) {
                      download( path, repr )
                   }
@@ -388,42 +362,51 @@ with Model {
       ggTable.getSelectionModel().addListSelectionListener( new ListSelectionListener {
          def valueChanged( e: ListSelectionEvent ) {
             val smps = ggTable.getSelectedRows().map( idx =>
-               samples( ggTable.convertRowIndexToModel( idx )).sample )
+               reprs( ggTable.convertRowIndexToModel( idx )).sample )
             dispatch( SelectionChanged( smps: _* ))
          }
       })
+      val ggScroll = new JScrollPane( ggTable,
+         ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS )
+      panel.add( ggScroll, BorderLayout.CENTER )
+//      queryFrame.addListener( frameListener )
+//      search.addListener( searchListener )
+//      pack()
+      setSize( 640, 480 )
    }
 
    private def download( folder: String, repr: SampleRepr ) {
-      val smp = repr.sample
-      smp.addListener( sampleDownloadListener( repr ))
-      val tmpFile = {
-         var i    = smp.id
-         val ext  = smp.info.get.extension
-         var f: File = null
-         do {
-            f = new File( folder, "__tmp" + i + "." + ext )
-            i += 1
-         } while( f.exists() )
-         f.createNewFile()
-         f.deleteOnExit()
-         f.getCanonicalPath()
-      }
-      smp.performDownload( tmpFile )( search.login )
+      login.foreach( l => {
+         val smp = repr.sample
+         smp.addListener( sampleDownloadListener( repr ))
+         val tmpFile = {
+            var i    = smp.id
+            val ext  = smp.info.get.extension
+            var f: File = null
+            do {
+               f = new File( folder, "__tmp" + i + "." + ext )
+               i += 1
+            } while( f.exists() )
+            f.createNewFile()
+            f.deleteOnExit()
+            f.getCanonicalPath()
+         }
+         smp.performDownload( tmpFile )( l )
+      })
    }
 
    private def infoDone( newRepr: SampleRepr ) {
 //      smp.removeListener( sampleListener )
       infoQueryActor ! IInfoDone( newRepr.sample )
       val rowIdx = mapToRowIndices( newRepr.sample )
-      samples( rowIdx ) = newRepr
+      reprs( rowIdx ) = newRepr
       SampleTableModel.fireTableCellUpdated( rowIdx, TableModelEvent.ALL_COLUMNS )
    }
 
    private def downloadUpdate( newRepr: SampleRepr ) {
 //println( "DOWN = " + newRepr.download )
       val rowIdx = mapToRowIndices( newRepr.sample )
-      samples( rowIdx ) = newRepr
+      reprs( rowIdx ) = newRepr
       SampleTableModel.fireTableCellUpdated( rowIdx, COL_DOWN.idx )
    }
 
@@ -432,12 +415,12 @@ with Model {
    }
 
    private object SampleTableModel extends AbstractTableModel {
-      def getRowCount = samples.size
+      def getRowCount = reprs.size
       def getColumnCount = NUM_COLUMNS
       override def getColumnName( colIdx: Int ) = COLUMNS( colIdx ).name
 
       def getValueAt( rowIdx: Int, colIdx: Int ) : AnyRef = {
-         val repr = samples( rowIdx )
+         val repr = reprs( rowIdx )
          val smp  = repr.sample
          if( colIdx == COL_ID.idx ) return smp.id.asInstanceOf[ AnyRef ]
          if( smp.info.isDefined ) {
@@ -456,6 +439,6 @@ with Model {
    }
 
    private def queueNextInfo {
-      samples.find( repr => infoQuerySet.contains( repr.sample )).foreach( addInfoQuery( _ ))
+      reprs.find( repr => infoQuerySet.contains( repr.sample )).foreach( addInfoQuery( _ ))
    }
 }

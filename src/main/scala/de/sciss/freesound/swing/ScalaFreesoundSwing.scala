@@ -31,7 +31,7 @@ package de.sciss.freesound.swing
 import javax.swing.WindowConstants
 import java.awt.{Point, EventQueue}
 import java.io.File
-import de.sciss.freesound.{SampleInfoCache, Freesound}
+import de.sciss.freesound.{Search, SampleInfoCache, Freesound}
 
 object ScalaFreesoundSwing {
    val name          = "ScalaFreesound-Swing"
@@ -84,9 +84,16 @@ object ScalaFreesoundSwing {
                         val kw = search.options.keyword
                         if( kw.size < 24 ) kw else kw.take( 23 ) + "…"
                      } + ")"
-                  val srf = new SearchResultFrame( sqf, search, title, icache, downloadPath )
-                  srf.setLocationRelativeTo( null )
-                  srf.setVisible( true )
+                  val spf = new SearchProgressFrame( sqf, search, title )
+                  spf.setLocationRelativeTo( null )
+                  spf.setVisible( true )
+                  spf.addListener {
+                     case Search.SearchDone( samples ) => {
+                        val srf = new SearchResultFrame( samples, Some( login ), title, icache, downloadPath )
+                        srf.setLocationRelativeTo( null )
+                        srf.setVisible( true )
+                     }
+                  }
                }
             }
          }
