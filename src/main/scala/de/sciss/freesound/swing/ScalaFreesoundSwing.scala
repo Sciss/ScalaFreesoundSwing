@@ -35,8 +35,8 @@ import de.sciss.freesound.{Search, SampleInfoCache, Freesound}
 
 object ScalaFreesoundSwing {
    val name          = "ScalaFreesound-Swing"
-   val version       = 0.10
-   val copyright     = "(C)opyright 2010 Hanns Holger Rutz"
+   val version       = 0.12
+   val copyright     = "(C)opyright 2010-2011 Hanns Holger Rutz"
    def versionString = (version + 0.001).toString.substring( 0, 4 )
 
    def main( args: Array[ String ]) {
